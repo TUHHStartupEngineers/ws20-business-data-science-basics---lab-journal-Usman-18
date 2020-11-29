@@ -178,6 +178,89 @@ sales_by_year_location_tbl %>%
 
 ``` 
 
+# My Second assignment
+
+Last compiled: `r Sys.Date()`
+
+```{r, fig.width=12, fig.height=7}
+# 1.0 LIBRARIES ----
+
+library(tidyverse) # Main Package - Loads dplyr, purrr, etc.
+library(rvest)     # HTML Hacking & Web Scraping
+library(xopen)     # Quickly opening URLs
+library(jsonlite)  # converts JSON files to R objects
+library(glue)      # concatenate strings
+library(stringi)   # character string/text processing
+library(httr)
+
+# Challenge 1
+
+resp <- GET("http://api.dataatwork.org/v1/jobs")
+
+stop_for_status(resp) # automatically throws an error if a request did not succeed.
+
+jobs_data_tbl <- resp %>% 
+  .$content %>% 
+  rawToChar() %>% 
+  fromJSON() %>% 
+  select(uuid, title, normalized_job_title, parent_uuid) %>% 
+  head(n = 10)
+
+
+jobs_data_tbl
+
+
+# Challenge 2
+
+url_home <- "https://www.radon-bikes.de/"
+html_home <- read_html(url_home)
+
+additional_url_part <- "bikegrid"
+
+# Extract the urls from the href attribute
+bike_category_tbl <- html_home %>%
+  html_nodes(css = ".e-bike-category-home a:first-child") %>%
+  html_attr('href') %>%
+  # Convert vector to tibble
+  enframe(name = "position", value = "category_url") %>%
+  mutate(
+    category_url = glue("https://www.radon-bikes.de{category_url}{additional_url_part}")
+  ) 
+
+
+bike_category_url <- bike_category_tbl$category_url[3]
+
+
+bike_category_model_names_html_home <- read_html(bike_category_url)
+
+bike_category_model_name <- bike_category_model_names_html_home %>%
+  html_nodes(css = ".m-bikegrid__info  h4 ") %>%
+  html_text() %>%
+  enframe(name = "position", value = "model_name")  %>%
+  mutate(
+    model_name = str_replace_all(model_name, "[\r\n]" , "")
+  )  %>%
+  mutate(
+    model_name = trimws(model_name, "l")
+  )  %>%
+  mutate(
+    model_name = trimws(model_name, "r")
+  )
+  
+  
+bike_category_models <- bike_category_model_names_html_home %>%
+  html_nodes(css = ".m-bikegrid__info  .currency_eur > .m-bikegrid__price--active") %>%
+  html_text() %>%
+  enframe(name = "position", value = "model_price")  %>%
+  left_join(bike_category_model_name) %>%
+  select(position, model_name, model_price)
+  
+bike_category_models
+
+
+``` 
+
+
 ## Second level header
 
 You can add more headers by adding more hashtags. These won't be put into the table of contents
