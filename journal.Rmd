@@ -259,31 +259,60 @@ bike_category_models
 
 
 ``` 
-
-
-## Second level header
-
-You can add more headers by adding more hashtags. These won't be put into the table of contents
-
-### third level header
-
-Here's an even lower level header
-
-# My second post (note the order)
+# My Fourth assignment
 
 Last compiled: `r Sys.Date()`
 
-I'm writing this tutorial going from the top down. And, this is how it will be printed. So, notice the second post is second in the list. If you want your most recent post to be at the top, then make a new post starting at the top. If you want the oldest first, do, then keep adding to the bottom
+```{r, fig.width=12, fig.height=7}
+library(tidyverse)
+library(lubridate)
+library(maps)
+covid_data_tbl <- read_csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv")
 
-# Adding R stuff
 
-So far this is just a blog where you can write in plain text and serve your writing to a webpage. One of the main purposes of this lab journal is to record your progress learning R. The reason I am asking you to use this process is because you can both make a website, and a lab journal, and learn R all in R-studio. This makes everything really convenient and in the same place. 
+world <- map_data("world")
 
-So, let's say you are learning how to make a histogram in R. For example, maybe you want to sample 100 numbers from a normal distribution with mean = 0, and standard deviation = 1, and then you want to plot a histogram. You can do this right here by using an r code block, like this:
 
-```{r}
-samples <- rnorm(100, mean=0, sd=1)
-hist(samples)
-```
 
-When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You'll learn that all of these things and more can be customized in each R code block.
+mortality_rate_data <- covid_data_tbl %>%
+  select(deaths, countriesAndTerritories, popData2019) %>%
+  group_by(countriesAndTerritories, popData2019) %>%
+  summarize(total_deaths = sum(deaths)) %>%
+  summarize(mortality_rate = (total_deaths/popData2019)) %>%
+  ungroup() 
+
+
+mortality_rate_data <- mortality_rate_data %>% 
+  mutate(across(countriesAndTerritories, str_replace_all, "_", " ")) %>%
+  mutate(countriesAndTerritories = case_when(
+    
+    countriesAndTerritories == "United Kingdom" ~ "UK",
+    countriesAndTerritories == "United States of America" ~ "USA",
+    countriesAndTerritories == "Czechia" ~ "Czech Republic",
+    TRUE ~ countriesAndTerritories
+    
+  )) %>% 
+  rename(
+    region = countriesAndTerritories,
+  )
+
+
+
+
+
+mortality_rate_data <- world %>%
+  left_join(y = mortality_rate_data, by = c("region" = "region"))  
+  
+
+
+
+ggplot(mortality_rate_data,  aes(fill=mortality_rate) ) +
+geom_map(aes(map_id =region), map = world ) +
+scale_fill_gradient(low="#FF0000", high="#870000", labels=scales::percent) +
+expand_limits(x=mortality_rate_data$long, y=mortality_rate_data$lat) +
+labs(x= 'Longitude', y='Latitude')
+  
+
+
+
+``` 
