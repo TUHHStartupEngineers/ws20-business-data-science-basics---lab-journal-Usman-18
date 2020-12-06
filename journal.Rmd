@@ -344,6 +344,95 @@ result <- read_rds("data_wrangling_challenge_1.rds")
 result
 ```
 
+```{r calculation_2, eval=FALSE}
+
+library(vroom)
+library(data.table)
+library(tidyverse)
+
+col_types_patent <- list(
+  id = col_character(),
+  type = col_character(),
+  number = col_character(),
+  country = col_character(),
+  date = col_date("%Y-%m-%d"),
+  abstract = col_character(),
+  title = col_character(),
+  kind = col_character(),
+  num_claims = col_double(),
+  filename = col_character(),
+  withdrawn = col_character()
+)
+
+col_types_assignee <- list(
+  id = col_character(),
+  type =  col_double(),
+  name_first = col_character(),
+  name_last = col_character(),
+  organization = col_character()
+)
+
+col_types_patent_assignee <- list(
+  patent_id = col_character(),
+  assignee_id = col_character(),
+  location_id = col_character()
+)
+
+patent_tbl <- vroom(
+  file       = "patent.tsv", 
+  delim      = "\t", 
+  col_types  = col_types_patent,
+  na         = c("", "NA", "NULL")
+)
+
+assignee_tbl <- vroom(
+  file       = "assignee.tsv", 
+  delim      = "\t", 
+  col_types  = col_types_assignee,
+  na         = c("", "NA", "NULL")
+)
+
+patent_assignee_tbl <- vroom(
+  file       = "patent_assignee.tsv", 
+  delim      = "\t", 
+  col_types  = col_types_patent_assignee,
+  na         = c("", "NA", "NULL")
+)
+
+
+assignee_tbl <- as.data.table(assignee_tbl %>% rename(assignee_id = id))
+patent_assignee_tbl <- as.data.table(patent_assignee_tbl %>% rename(id = patent_id))
+
+combined_assignee_tbl_patent_assignee_tbl_data <- merge(x = assignee_tbl, y = patent_assignee_tbl, 
+                       by    = "assignee_id" ,
+                       all.x = FALSE, 
+                       all.y = TRUE)
+class(patent_tbl)
+setDT(patent_tbl)
+
+combined_assignee_tbl_patent_assignee_tbl_patent_tbl_data <- 
+  merge(x = combined_assignee_tbl_patent_assignee_tbl_data, y = patent_tbl, 
+        by    = "id" ,
+        all.x = TRUE, 
+        all.y = TRUE )
+
+us_company_patent_details_2019 <- combined_assignee_tbl_patent_assignee_tbl_patent_tbl_data[type.x == 2 & lubridate::year(date) == "2019",  .(patents_count = .N),
+                  by = organization][order(patents_count, decreasing = TRUE)]
+
+us_company_patent_details_2019 <- head(us_company_patent_details_2019, n=10)
+
+write_rds(us_company_patent_details_2019, "data_wrangling_challenge_2.rds")
+
+```
+
+
+```{r result_2}
+library(readr)
+library(data.table)
+result <- read_rds("data_wrangling_challenge_2.rds")
+result
+```
+
 # My Fourth assignment
 
 Last compiled: `r Sys.Date()`
