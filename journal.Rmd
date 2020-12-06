@@ -259,6 +259,91 @@ bike_category_models
 
 
 ``` 
+# My third assignment
+
+Last compiled: `r Sys.Date()`
+
+```{r calculation, eval=FALSE}
+library(vroom)
+
+# Data Table
+library(data.table)
+library(tidyverse)
+library(readr)
+
+col_types_patent <- list(
+  id = col_character(),
+  type = col_character(),
+  number = col_character(),
+  country = col_character(),
+  date = col_date("%Y-%m-%d"),
+  abstract = col_character(),
+  title = col_character(),
+  kind = col_character(),
+  num_claims = col_double(),
+  filename = col_character(),
+  withdrawn = col_character()
+)
+
+col_types_assignee <- list(
+  id = col_character(),
+  type =  col_double(),
+  name_first = col_character(),
+  name_last = col_character(),
+  organization = col_character()
+)
+
+col_types_patent_assignee <- list(
+  patent_id = col_character(),
+  assignee_id = col_character(),
+  location_id = col_character()
+)
+
+
+
+
+assignee_tbl <- vroom(
+  file       = "assignee.tsv", 
+  delim      = "\t", 
+  col_types  = col_types_assignee,
+  na         = c("", "NA", "NULL")
+)
+
+patent_assignee_tbl <- vroom(
+  file       = "patent_assignee.tsv", 
+  delim      = "\t", 
+  col_types  = col_types_patent_assignee,
+  na         = c("", "NA", "NULL")
+)
+
+
+assignee_tbl <- as.data.table(assignee_tbl %>% rename(assignee_id = id))
+patent_assignee_tbl <- as.data.table(patent_assignee_tbl %>% rename(id = patent_id))
+
+combined_assignee_tbl_patent_assignee_tbl_data <- merge(x = assignee_tbl, y = patent_assignee_tbl, 
+                       by    = "assignee_id" ,
+                       all.x = FALSE, 
+                       all.y = TRUE)
+
+
+us_company_patent_details <- combined_assignee_tbl_patent_assignee_tbl_data[type == 2,  .(patents_count = .N),
+              by = organization][
+                order(patents_count, decreasing = TRUE)]
+
+
+us_company_patent_details <- head(us_company_patent_details, n=10)
+
+write_rds(us_company_patent_details, "data_wrangling_challenge_1.rds")
+
+```  
+
+```{r result}
+library(readr)
+library(data.table)
+result <- read_rds("data_wrangling_challenge_1.rds")
+result
+```
+
 # My Fourth assignment
 
 Last compiled: `r Sys.Date()`
