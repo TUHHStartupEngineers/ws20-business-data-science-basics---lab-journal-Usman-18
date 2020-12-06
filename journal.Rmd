@@ -441,7 +441,39 @@ Last compiled: `r Sys.Date()`
 library(tidyverse)
 library(lubridate)
 library(maps)
+library(scales)
+library(ggthemes)
+library(ggrepel)
 covid_data_tbl <- read_csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv")
+
+cumulative_covid_19_case_data <- covid_data_tbl %>% filter(countriesAndTerritories == 'Germany' | countriesAndTerritories == 'France' | countriesAndTerritories == 'Spain'| countriesAndTerritories == 'United_Kingdom' | countriesAndTerritories == 'United_States_of_America') %>%
+  select(dateRep,  cases, countriesAndTerritories) %>%
+  mutate(date=dmy(dateRep))  %>%
+  arrange(countriesAndTerritories, date)  %>%
+  group_by(countriesAndTerritories) %>%
+  mutate(cumulative_cases=cumsum(cases))  %>%
+  ungroup()
+
+max_usa_covid_19_cases <- cumulative_covid_19_case_data %>% filter(countriesAndTerritories == 'United_States_of_America') %>%
+  filter(cumulative_cases == max(cumulative_cases))  %>%
+ pull(cumulative_cases)
+
+ggplot(cumulative_covid_19_case_data, aes(x=date, y=cumulative_cases, color = countriesAndTerritories)) +
+geom_line(size = 1) + 
+labs(x='Date', y= 'Cumulative Covid-19 cases', title = 'Covid-19 cases') +
+scale_y_continuous(labels = unit_format(unit = "M", scale = 1e-6))+
+  theme_light() +
+theme(legend.position = "bottom", legend.title = element_blank()) +
+  
+  geom_label(label =  max_usa_covid_19_cases,
+             vjust = 1, 
+             hjust = 1.25,
+             size  = 4,
+             fill  = "#F539FE",
+             color = "white",
+             fontface = "italic",
+             data = cumulative_covid_19_case_data %>%
+             filter(countriesAndTerritories == 'United_States_of_America' & cumulative_cases ==max_usa_covid_19_cases)) 
 
 
 world <- map_data("world")
